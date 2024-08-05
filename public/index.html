@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Users</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <h2>Live Users</h2>
+    <ul id="usersList"></ul>
+    <div class="scrollable">
+        <table id="userTable">
+            <thead>
+                <tr>
+                    <th>Email Id</th>
+                    <th>Status</th>
+                    <th>Socket ID</th>
+                </tr>
+            </thead>
+            <tbody id="userList"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const socket = io();
+
+        // Prompt user for email and name
+        const email = prompt('Enter your email:');
+        const name = prompt('Enter your name:');
+        socket.emit('joinRoom', { email, name });
+
+        // Add user to list when they join
+        socket.on('userJoined', (userData) => {
+            addUserToList(userData);
+        });
+
+        // Remove user from list when they leave
+        socket.on('userLeft', (userData) => {
+            removeUserFromList(userData.socketId);
+        });
+
+        // Populate current users list when the user connects
+        socket.on('currentUsers', (users) => {
+            users.forEach(user => addUserToList(user));
+        });
+
+        function addUserToList(userData) {
+            // Add user to the unordered list
+            const userItem = document.createElement('li');
+            userItem.textContent = `${userData.name} (${userData.email}) - ${userData.socketId}`;
+            userItem.addEventListener('click', () => {
+                alert(`User Info: \nName: ${userData.name}\nEmail: ${userData.email}\nSocket ID: ${userData.socketId}`);
+            });
+            document.getElementById('usersList').appendChild(userItem);
+
+            // Add user to the table
+            const userTableRow = document.createElement('tr');
+            userTableRow.innerHTML = `
+                <td>${userData.email}</td>
+                <td>Online</td>
+                <td>${userData.socketId}</td>
+            `;
+            userTableRow.setAttribute('data-socket-id', userData.socketId);
+            document.getElementById('userList').appendChild(userTableRow);
+        }
+
+        function removeUserFromList(socketId) {
+            // Remove user from the unordered list
+            const userList = document.getElementById('usersList');
+            for (let i = 0; i < userList.children.length; i++) {
+                if (userList.children[i].textContent.includes(socketId)) {
+                    userList.removeChild(userList.children[i]);
+                    break;
+                }
+            }
+
+            // Remove user from the table
+            const userTable = document.getElementById('userList');
+            const userRows = userTable.getElementsByTagName('tr');
+            for (let i = 0; i < userRows.length; i++) {
+                if (userRows[i].getAttribute('data-socket-id') === socketId) {
+                    userTable.removeChild(userRows[i]);
+                    break;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
